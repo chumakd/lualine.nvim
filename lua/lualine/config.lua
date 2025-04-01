@@ -18,11 +18,12 @@ local config = {
     },
     ignore_focus = {},
     always_divide_middle = true,
+    always_show_tabline = true,
     globalstatus = vim.go.laststatus == 3,
     refresh = {
-      statusline = 1000,
-      tabline = 1000,
-      winbar = 1000,
+      statusline = 100,
+      tabline = 100,
+      winbar = 100,
     },
   },
   sections = {
@@ -102,12 +103,6 @@ local function apply_configuration(config_table)
         config[section_group_name][section_name] = utils.deepcopy(section)
       end
     end
-  end
-  if config_table.options and config_table.options.globalstatus and vim.fn.has('nvim-0.7') == 0 then
-    modules.utils_notices.add_notice(
-      '### Options.globalstatus\nSorry `globalstatus` option can only be used in neovim 0.7 or higher.\n'
-    )
-    config_table.options.globalstatus = false
   end
   if vim.fn.has('nvim-0.8') == 0 and (next(config_table.winbar or {}) or next(config_table.inactive_winbar or {})) then
     modules.utils_notices.add_notice('### winbar\nSorry `winbar can only be used in neovim 0.8 or higher.\n')

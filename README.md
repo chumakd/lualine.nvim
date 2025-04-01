@@ -4,12 +4,16 @@
 
 ![code size](https://img.shields.io/github/languages/code-size/nvim-lualine/lualine.nvim?style=flat-square)
 ![license](https://img.shields.io/github/license/nvim-lualine/lualine.nvim?style=flat-square)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-F7941D?style=plastic&logo=buy-me-a-coffee&logoColor=white)](https://buymeacoffee.com/shadmansalj)
 
 <!-- panvimdoc-ignore-end -->
 
 A blazing fast and easy to configure Neovim statusline written in Lua.
 
-`lualine.nvim` requires Neovim >= 0.5.
+`lualine.nvim` requires Neovim >= 0.7.
+
+For previous versions of neovim please use compatability tags for example
+compat-nvim-0.5
 
 ## Contributing
 
@@ -85,6 +89,15 @@ use {
 }
 ```
 
+### [lazy.nvim](https://github.com/folke/lazy.nvim)
+
+```lua
+{
+    'nvim-lualine/lualine.nvim',
+    dependencies = { 'nvim-tree/nvim-web-devicons' }
+}
+```
+
 You'll also need to have a patched font if you want icons.
 
 ## Usage and customization
@@ -127,11 +140,12 @@ require('lualine').setup {
     },
     ignore_focus = {},
     always_divide_middle = true,
+    always_show_tabline = true,
     globalstatus = false,
     refresh = {
-      statusline = 1000,
-      tabline = 1000,
-      winbar = 1000,
+      statusline = 100,
+      tabline = 100,
+      winbar = 100,
     }
   },
   sections = {
@@ -255,6 +269,7 @@ sections = {lualine_a = {'mode'}}
 - `selectioncount` (number of selected characters or lines)
 - `tabs` (shows currently available tabs)
 - `windows` (shows currently available windows)
+- `lsp_status` (shows active LSPs in the current buffer and a progress spinner)
 
 #### Custom components
 
@@ -361,19 +376,28 @@ options = {
                              -- for example if you don't want statusline of
                              -- your file tree / sidebar window to have active
                              -- statusline you can add their filetypes here.
+                             --
+                             -- Can also be set to a function that takes the
+                             -- currently focused window as its only argument
+                             -- and returns a boolean representing whether the
+                             -- window's statusline should be drawn as inactive.
 
   always_divide_middle = true, -- When set to true, left sections i.e. 'a','b' and 'c'
                                -- can't take over the entire statusline even
                                -- if neither of 'x', 'y' or 'z' are present.
+
+  always_show_tabline = true -- When set to true, if you have configured lualine for displaying tabline
+                          -- then tabline will always show. If set to false, then tabline will be displayed
+                          -- only when there are more than 1 tab. (see :h showtabline)
 
   globalstatus = false,        -- enable global statusline (have a single statusline
                                -- at bottom of neovim instead of one for  every window).
                                -- This feature is only available in neovim 0.7 and higher.
 
   refresh = {                  -- sets how often lualine should refresh it's contents (in ms)
-    statusline = 1000,         -- The refresh option sets minimum time that lualine tries
-    tabline = 1000,            -- to maintain between refresh. It's not guarantied if situation
-    winbar = 1000              -- arises that lualine needs to refresh itself before this time
+    statusline = 100,         -- The refresh option sets minimum time that lualine tries
+    tabline = 100,            -- to maintain between refresh. It's not guarantied if situation
+    winbar = 100              -- arises that lualine needs to refresh itself before this time
                                -- it'll do it.
 
                                -- Also you can force lualine's refresh by calling refresh function
@@ -582,9 +606,9 @@ sections = {
       colored = true, -- Displays a colored diff status if set to true
       diff_color = {
         -- Same color values as the general color option can be used here.
-        added    = 'DiffAdd',    -- Changes the diff's added color
-        modified = 'DiffChange', -- Changes the diff's modified color
-        removed  = 'DiffDelete', -- Changes the diff's removed color you
+        added    = 'LuaLineDiffAdd',    -- Changes the diff's added color
+        modified = 'LuaLineDiffChange', -- Changes the diff's modified color
+        removed  = 'LuaLineDiffDelete', -- Changes the diff's removed color you
       },
       symbols = {added = '+', modified = '~', removed = '-'}, -- Changes the symbols used by the diff.
       source = nil, -- A function that works as a data source for diff.
@@ -658,6 +682,20 @@ sections = {
 }
 ```
 
+#### encoding component options
+
+```lua
+sections = {
+  lualine_a = {
+    {
+      'encoding',
+      -- Show '[BOM]' when the file has a byte-order mark
+        show_bomb = false,
+    }
+  }
+}
+```
+
 #### searchcount component options
 
 ```lua
@@ -679,6 +717,7 @@ sections = {
   lualine_a = {
     {
       'tabs',
+      tab_max_length = 40,  -- Maximum width of each tab. The content will be shorten dynamically (example: apple/orange -> a/orange)
       max_length = vim.o.columns / 3, -- Maximum width of tabs component.
                                       -- Note:
                                       -- It can also be a function that returns
@@ -687,6 +726,11 @@ sections = {
                 -- 1: Shows tab_name
                 -- 2: Shows tab_nr + tab_name
 
+      path = 0, -- 0: just shows the filename
+                -- 1: shows the relative path and shorten $HOME to ~
+                -- 2: shows the full path
+                -- 3: shows the full path and shorten $HOME to ~
+
       -- Automatically updates active tab color to match color of other components (will be overidden if buffers_color is set)
       use_mode_colors = false,
 
@@ -694,6 +738,11 @@ sections = {
         -- Same values as the general color option can be used here.
         active = 'lualine_{section}_normal',     -- Color for active tab.
         inactive = 'lualine_{section}_inactive', -- Color for inactive tab.
+      },
+
+      show_modified_status = true,  -- Shows a symbol next to the tab name if the file has been modified.
+      symbols = {
+        modified = '[+]',  -- Text to show when the file is modified.
       },
 
       fmt = function(name, context)
@@ -745,6 +794,29 @@ sections = {
         active = 'lualine_{section}_normal',     -- Color for active window.
         inactive = 'lualine_{section}_inactive', -- Color for inactive window.
       },
+    }
+  }
+}
+```
+
+#### lsp status component options
+
+```lua
+sections = {
+  lualine_a = {
+    {
+      'lsp_status',
+      icon = '', -- f013
+      symbols = {
+        -- Standard unicode symbols to cycle through for LSP progress:
+        spinner = { '⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏' },
+        -- Standard unicode symbol for when LSP is done:
+        done = '✓',
+        -- Delimiter inserted between LSP names:
+        separator = ' ',
+      },
+      -- List of LSP names to ignore (e.g., `null-ls`):
+      ignore_lsp = {},
     }
   }
 }
@@ -886,16 +958,19 @@ extensions = {'quickfix'}
 
 - aerial
 - chadtree
+- ctrlspace
 - fern
 - fugitive
 - fzf
 - lazy
 - man
+- mason
 - mundo
 - neo-tree
 - nerdtree
 - nvim-dap-ui
 - nvim-tree
+- oil
 - overseer
 - quickfix
 - symbols-outline
@@ -992,3 +1067,11 @@ You can find some useful [configuration snippets](https://github.com/nvim-lualin
 
 If you want to extend lualine with plugins or want to know
 which ones already do, [wiki/plugins](https://github.com/nvim-lualine/lualine.nvim/wiki/Plugins) is for you.
+
+### Support
+
+If you find this project useful, consider supporting development:
+
+<a href="https://buymeacoffee.com/shadmansalj" target="_blank">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="200">
+</a>

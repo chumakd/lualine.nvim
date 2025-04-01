@@ -21,7 +21,10 @@ local default_options = {
 
 local function is_new_file()
   local filename = vim.fn.expand('%')
-  return filename ~= '' and vim.bo.buftype == '' and vim.fn.filereadable(filename) == 0
+  return filename ~= ''
+    and filename:match('^%a+://') == nil
+    and vim.bo.buftype == ''
+    and vim.fn.filereadable(filename) == 0
 end
 
 ---shortens path by turning apple/orange -> a/orange
@@ -86,8 +89,6 @@ M.update_status = function(self)
     data = vim.fn.expand('%:t')
   end
 
-  data = modules.utils.stl_escape(data)
-
   if data == '' then
     data = self.options.symbols.unnamed
   end
@@ -98,6 +99,8 @@ M.update_status = function(self)
 
     data = shorten_path(data, path_separator, estimated_space_available)
   end
+
+  data = modules.utils.stl_escape(data)
 
   local symbols = {}
   if self.options.file_status then
