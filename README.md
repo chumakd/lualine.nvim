@@ -4,7 +4,6 @@
 
 ![code size](https://img.shields.io/github/languages/code-size/nvim-lualine/lualine.nvim?style=flat-square)
 ![license](https://img.shields.io/github/license/nvim-lualine/lualine.nvim?style=flat-square)
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-F7941D?style=plastic&logo=buy-me-a-coffee&logoColor=white)](https://buymeacoffee.com/shadmansalj)
 
 <!-- panvimdoc-ignore-end -->
 
@@ -49,6 +48,8 @@ For those who want to break the norms, you can create custom looks for lualine.
   <img width='700' src='https://user-images.githubusercontent.com/13149513/143395518-f6d6f748-c1ca-491b-9dab-246d0a8cf23f.png'/>
 - [bubbles](examples/bubbles.lua)
   <img width='700' src='https://user-images.githubusercontent.com/20235646/131350468-fc556196-5f46-4bfe-a72e-960f6a58db2c.png'/>
+- [cosmicink](examples/cosmicink.lua)
+  <img width='700' src='https://github.com/user-attachments/assets/c8d3e4ba-4997-42e9-a1bb-d5e2a444bbfd'/>
 
 <!-- panvimdoc-ignore-end -->
 
@@ -143,9 +144,22 @@ require('lualine').setup {
     always_show_tabline = true,
     globalstatus = false,
     refresh = {
-      statusline = 100,
-      tabline = 100,
-      winbar = 100,
+      statusline = 1000,
+      tabline = 1000,
+      winbar = 1000,
+      refresh_time = 16, -- ~60fps
+      events = {
+        'WinEnter',
+        'BufEnter',
+        'BufWritePost',
+        'SessionLoadPost',
+        'FileChangedShellPost',
+        'VimResized',
+        'Filetype',
+        'CursorMoved',
+        'CursorMovedI',
+        'ModeChanged',
+      },
     }
   },
   sections = {
@@ -398,8 +412,20 @@ options = {
     statusline = 100,         -- The refresh option sets minimum time that lualine tries
     tabline = 100,            -- to maintain between refresh. It's not guarantied if situation
     winbar = 100              -- arises that lualine needs to refresh itself before this time
-                               -- it'll do it.
-
+                              -- it'll do it.
+    refresh_time = 16,        -- ~60fps the time after which refresh queue is processed. Mininum refreshtime for lualine
+    events = {                -- The auto command events at which lualine refreshes
+      'WinEnter',
+      'BufEnter',
+      'BufWritePost',
+      'SessionLoadPost',
+      'FileChangedShellPost',
+      'VimResized',
+      'Filetype',
+      'CursorMoved',
+      'CursorMovedI',
+      'ModeChanged',
+    },
                                -- Also you can force lualine's refresh by calling refresh function
                                -- like require('lualine').refresh()
   }
@@ -654,6 +680,8 @@ sections = {
 
       shorting_target = 40,    -- Shortens path to leave 40 spaces in the window
                                -- for other components. (terrible name, any suggestions?)
+                               -- It can also be a function that returns
+                               -- the value of `shorting_target` dynamically.
       symbols = {
         modified = '[+]',      -- Text to show when the file is modified.
         readonly = '[-]',      -- Text to show when the file is non-modifiable or readonly.
@@ -817,6 +845,8 @@ sections = {
       },
       -- List of LSP names to ignore (e.g., `null-ls`):
       ignore_lsp = {},
+      -- Display the LSP name
+      show_name = true,
     }
   }
 }
@@ -957,6 +987,8 @@ extensions = {'quickfix'}
 #### Available extensions
 
 - aerial
+- assistant
+- avante
 - chadtree
 - ctrlspace
 - fern
@@ -1010,8 +1042,24 @@ So you can simply do
 require('lualine').refresh()
 ```
 
-Avoid calling `lualine.refresh` inside components. Since components are evaluated
-during refresh, calling refresh while refreshing can have undesirable effects.
+Also, note by default when you call refresh a refresh event is queued in lualine.
+It desn't refresh event immidiately. It'll refresh on next refresh check pass.
+By default this time is set to 16ms to match 60fps. This duration can be configured
+with `options.refresh.refresh_time` option. If you want to bypass the refresh queue
+and want lualine to process the refresh immmidiately call refresh with `force=true`
+parameter set like this.
+```lua
+require('lualine').refresh({
+  force = true,       -- do an immidiate refresh
+  scope = 'tabpage',  -- scope of refresh all/tabpage/window
+  place = { 'statusline', 'winbar', 'tabline' },  -- lualine segment ro refresh.
+})
+```
+Practically, speaking this is almost never needed. Also you should avoid calling
+`lualine.refresh` with `force` inside components. Since components are
+evaluated during refresh, calling refresh while refreshing can have undesirable
+effects.
+
 
 ### Disabling lualine
 
@@ -1067,11 +1115,3 @@ You can find some useful [configuration snippets](https://github.com/nvim-lualin
 
 If you want to extend lualine with plugins or want to know
 which ones already do, [wiki/plugins](https://github.com/nvim-lualine/lualine.nvim/wiki/Plugins) is for you.
-
-### Support
-
-If you find this project useful, consider supporting development:
-
-<a href="https://buymeacoffee.com/shadmansalj" target="_blank">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="200">
-</a>
